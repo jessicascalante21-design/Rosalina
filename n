@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Entrenamiento Housekeeping - Master Class</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        .fade-in { animation: fadeIn 0.5s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .chart-container { position: relative; width: 100%; max-width: 300px; margin: 0 auto; height: 200px; }
+        
+        /* Estilos específicos para las tablas del reporte */
+        .header-green { background-color: #00ff00; color: black; font-weight: bold; }
+        .header-gray { background-color: #d1d5db; color: black; font-weight: bold; }
+        .header-orange { background-color: #ff9900; }
+        .header-yellow { background-color: #ffff00; }
+        .header-magenta { background-color: #ff00ff; color: white; }
+        .header-cyan { background-color: #00ffff; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // --- 1. QUIZ DE DIAGNÓSTICO (Adaptado a tus nuevos estándares) ---
+        const QuizModule = ({ onComplete }) => {
+            const [currentQuestion, setCurrentQuestion] = useState(0);
+            const [showFeedback, setShowFeedback] = useState(false);
+            const [isCorrect, setIsCorrect] = useState(false);
+            const [score, setScore] = useState(0);
+
+            const questions = [
+                {
+                    q: "Tienes un 'CRUCE' (uno sale, otro entra). ¿Qué limpias PRIMERO?",
+                    options: [
+                        { text: "La cama, para que se vea lista rápido", correct: false },
+                        { text: "El baño, por eficiencia y desinfección", correct: true },
+                        { text: "Barrer el piso", correct: false }
+                    ],
+                    explanation: "En un CRUCE (20-25 min), la prioridad es sacar ropa sucia y atacar el BAÑO primero por eficiencia."
+                },
+                {
+                    q: "Vas a hacer un REPASO RÁPIDO (estaba vacía, hoy entra alguien). ¿Cuánto tiempo tienes?",
+                    options: [
+                        { text: "10 a 15 minutos", correct: true },
+                        { text: "30 minutos", correct: false },
+                        { text: "Lo que me tome revisar todo", correct: false }
+                    ],
+                    explanation: "El estándar es 10-15 min. Objetivo: Que parezca NUEVA (Ventilar, Olor, Polvo, Luces)."
+                },
+                {
+                    q: "Estás en Ocean Park. ¿Qué es CRÍTICO revisar por la humedad?",
+                    options: [
+                        { text: "El microondas", correct: false },
+                        { text: "Que el A/C drene bien y no huela", correct: true },
+                        { text: "Las persianas", correct: false }
+                    ],
+                    explanation: "En Ocean Park, el A/C y el OLOR son control estricto debido a la alta rotación y zonas externas húmedas."
+                }
+            ];
+
+            const handleAnswer = (isAnsCorrect) => {
+                setIsCorrect(isAnsCorrect);
+                if (isAnsCorrect) setScore(score + 1);
+                setShowFeedback(true);
+            };
+
+            const nextQ = () => {
+                if (currentQuestion < questions.length - 1) {
+                    setCurrentQuestion(currentQuestion + 1);
+                    setShowFeedback(false);
+                } else {
+                    onComplete(score);
+                }
+            };
+
+            const q = questions[currentQuestion];
+
+            return (
+                <div className="max-w-2xl mx-auto p-6 bg-white rounded-xl shadow-lg fade-in mt-10">
+                    <h2 className="text-2xl font-bold text-blue-900 mb-2">Evaluación de Estándares</h2>
+                    <div className="w-full bg-gray-200 rounded-full h-2.5 mb-6">
+                        <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: `${((currentQuestion + 1) / questions.length) * 100}%` }}></div>
+                    </div>
+
+                    {!showFeedback ? (
+                        <>
+                            <h3 className="text-xl font-semibold mb-6">{q.q}</h3>
+                            <div className="space-y-3">
+                                {q.options.map((opt, idx) => (
+                                    <button 
+                                        key={idx}
+                                        onClick={() => handleAnswer(opt.correct)}
+                                        className="w-full text-left p-4 rounded-lg border-2 border-gray-100 hover:border-blue-500 hover:bg-blue-50 transition flex justify-between items-center group"
+                                    >
+                                        {opt.text}
+                                        <i className="ph ph-caret-right opacity-0 group-hover:opacity-100"></i>
+                                    </button>
+                                ))}
+                            </div>
+                        </>
+                    ) : (
+                        <div className={`p-6 rounded-lg text-center ${isCorrect ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+                            <div className="mb-4">
+                                {isCorrect ? (
+                                    <i className="ph ph-check-circle text-5xl text-green-500"></i>
+                                ) : (
+                                    <i className="ph ph-x-circle text-5xl text-red-500"></i>
+                                )}
+                            </div>
+                            <h3 className={`text-xl font-bold mb-2 ${isCorrect ? 'text-green-800' : 'text-red-800'}`}>
+                                {isCorrect ? "¡Correcto!" : "Revisa el estándar:"}
+                            </h3>
+                            <p className="text-gray-700 mb-6 font-medium">{q.explanation}</p>
+                            <button onClick={nextQ} className="bg-blue-900 text-white px-8 py-2 rounded-full hover:bg-blue-800 shadow-lg">
+                                {currentQuestion < questions.length - 1 ? "Siguiente Pregunta" : "Ver Resultados"}
+                            </button>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // --- 2. MANUAL DE PROCESOS (Interactiva con Tabs) ---
+        const ProcessStandard = () => {
+            const [activeTab, setActiveTab] = useState('repaso');
+
+            const protocols = {
+                repaso: {
+                    title: "Repaso Rápido",
+                    time: "10–15 min",
+                    target: "Refrescar y asegurar primera impresión impecable.",
+                    context: "Habitaciones vacantes que recibirán huésped HOY.",
+                    icon: "ph-lightning",
+                    color: "bg-yellow-100 text-yellow-800 border-yellow-300",
+                    steps: [
+                        "Aire A/C encendido 5 min (Ventilar).",
+                        "Revisar OLOR (No puede oler a cerrado/húmedo).",
+                        "Sacudir polvo: Mesas, nightstands, counters.",
+                        "Reemplazar toallas según # huéspedes.",
+                        "Enderezar cama (No cambiar sábanas si no se usó).",
+                        "Revisar nevera/microondas limpios.",
+                        "Encender todas las luces (Check funcional).",
+                        "Amenities completos (Jabón, papel, agua).",
+                        "Mirada final desde la puerta: EFECTO WOW."
+                    ]
+                },
+                salida: {
+                    title: "Limpieza de Salida",
+                    time: "25–40 min (Max 1h)",
+                    target: "Reset completo posterior al check-out.",
+                    context: "Salida de huésped. Priorizar calidad sobre velocidad.",
+                    icon: "ph-arrow-u-up-left",
+                    color: "bg-blue-100 text-blue-800 border-blue-300",
+                    steps: [
+                        "Cambio TOTAL de ropa de cama.",
+                        "Baño completo (Inodoro, ducha, lavamanos).",
+                        "Limpieza de superficies y pisos.",
+                        "Nevera y microondas (si aplica, retirar comida).",
+                        "Revisión general de mantenimiento.",
+                        "Ventilar 5 min y neutralizar olores.",
+                        "Dejar cortinas semi-abiertas."
+                    ]
+                },
+                cruce: {
+                    title: "CRUCE (Prioridad)",
+                    time: "30–50 min",
+                    target: "Velocidad + Precisión (Prioridad Absoluta).",
+                    context: "Check-out + Check-in el MISMO DÍA.",
+                    icon: "ph-arrows-left-right",
+                    color: "bg-red-100 text-red-800 border-red-300",
+                    steps: [
+                        "REGLA ORO: Se hace apenas el huésped sale.",
+                        "1. Ropa sucia fuera INMEDIATAMENTE.",
+                        "2. Baño PRIMERO (Eficiencia).",
+                        "3. Cama DESPUÉS (Sábanas y toallas nuevas).",
+                        "4. Piso AL FINAL.",
+                        "Amenities completos.",
+                        "Aire prendido para refrescar.",
+                        "Control final rápido."
+                    ]
+                },
+                profunda: {
+                    title: "Profunda / Mant.",
+                    time: "60 min",
+                    target: "Detalle adicional e intervención técnica.",
+                    context: "Tareas profundas o Mantenimiento básico.",
+                    icon: "ph-wrench",
+                    color: "bg-purple-100 text-purple-800 border-purple-300",
+                    steps: [
+                        "Limpieza detrás de muebles.",
+                        "Revisión técnica de A/C (filtros/rejillas).",
+                        "Revisión de drenajes y fugas.",
+                        "Limpieza de cristales y paredes.",
+                        "Inventario detallado de utensilios.",
+                        "Desinfección de control remoto, switches, perillas."
+                    ]
+                }
+            };
+
+            const current = protocols[activeTab];
+
+            return (
+                <div className="fade-in max-w-5xl mx-auto">
+                    <h2 className="text-2xl font-bold text-center text-slate-800 mb-6">Estándares y Tiempos Oficiales</h2>
+                    
+                    {/* TABS DE SELECCIÓN */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-6">
+                        {Object.keys(protocols).map(key => (
+                            <button
+                                key={key}
+                                onClick={() => setActiveTab(key)}
+                                className={`p-3 rounded-lg font-bold text-sm md:text-base transition border-b-4 ${activeTab === key ? 'bg-white shadow-lg translate-y-[-2px] ' + protocols[key].color : 'bg-gray-200 text-gray-500 border-gray-300 hover:bg-gray-300'}`}
+                            >
+                                <div className="flex flex-col items-center gap-1">
+                                    <i className={`ph ${protocols[key].icon} text-2xl`}></i>
+                                    {protocols[key].title}
+                                </div>
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* TARJETA DE DETALLE */}
+                    <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200">
+                        <div className={`p-6 ${current.color} border-l-8`}>
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <h3 className="text-3xl font-bold mb-1">{current.title}</h3>
+                                    <p className="font-medium opacity-90">{current.context}</p>
+                                </div>
+                                <div className="bg-white/50 px-4 py-2 rounded-lg backdrop-blur-sm">
+                                    <span className="block text-xs uppercase tracking-wider font-bold opacity-70">Tiempo Meta</span>
+                                    <span className="text-2xl font-black">{current.time}</span>
+                                </div>
+                            </div>
+                            <div className="mt-4 bg-white/40 p-3 rounded text-sm font-bold flex items-center gap-2">
+                                <i className="ph ph-target text-xl"></i> {current.target}
+                            </div>
+                        </div>
+
+                        <div className="p-6 md:p-8">
+                            <h4 className="text-lg font-bold text-gray-700 mb-4 flex items-center gap-2">
+                                <i className="ph ph-list-checks text-blue-600"></i> Checklist de Ejecución
+                            </h4>
+                            <div className="grid md:grid-cols-2 gap-x-8 gap-y-3">
+                                {current.steps.map((step, i) => (
+                                    <div key={i} className="flex items-start gap-3 p-2 hover:bg-gray-50 rounded border-b border-gray-100">
+                                        <div className="bg-green-100 text-green-700 w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 text-xs font-bold">
+                                            {i + 1}
+                                        </div>
+                                        <p className="text-gray-700 text-sm leading-relaxed">{step}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- 3. LECTURA DE REPORTE (Manteniendo la lógica anterior visual) ---
+        const ReportReader = () => {
+            const [selectedSection, setSelectedSection] = useState(null);
+
+             const explanations = {
+                header_green: { title: "ENCABEZADOS VERDES", desc: "Totales de Llegadas.", action: "Prepara kits de bienvenida según este número." },
+                header_gray: { title: "OCUPADAS / VACANTES", desc: "Panorama de ocupación.", action: "Si hay muchas vacantes, es día de limpiezas profundas." },
+                unit_date: { title: "DATE", desc: "Vigencia de estadía.", action: "Verifica fechas para no entrar a habitación ocupada por error." },
+                checkout_only: { title: "CHECK-OUT", desc: "Huésped sale.", action: "Protocolo: LIMPIEZA DE SALIDA (25-35 min)." },
+                checkin_only: { title: "CHECK-IN", desc: "Huésped llega.", action: "Protocolo: REPASO RÁPIDO si estaba vacía (10-15 min)." },
+                turnover: { title: "CRUCE (PRIORIDAD)", desc: "Salida + Entrada el mismo día.", action: "Protocolo: CRUCE (20-25 min). Baño primero." },
+                early_checkin: { title: "EARLY CHECK-IN", desc: "Nombre AMARILLO.", action: "Hacer PRIMERO que todas. Huésped llega antes." },
+                late_checkout: { title: "LATE CHECK-OUT", desc: "Nombre MORADO.", action: "NO TOCAR. Huésped pagó para salir tarde." },
+                decoration: { title: "DECORACIÓN", desc: "Nombre AZUL.", action: "Revisar notas: Globos, vino, aniversario." },
+                vacante_checkout_orange: { title: "VACANTE (Salida)", desc: "Sin reserva anterior.", action: "Inspeccionar por seguridad." },
+                vacante_checkin_orange: { title: "VACANTE (Entrada)", desc: "No prioritaria.", action: "Limpiar al final del turno." },
+                guests: { title: "# GUEST", desc: "Define INSUMOS.", action: "2 pax = 2 aguas. 3 pax = Kit sofá cama." },
+                notes: { title: "NOTAS", desc: "Detalles especiales.", action: "Leer antes de entrar a la unidad." }
+            };
+
+            return (
+                <div className="flex flex-col lg:flex-row h-[500px] bg-white shadow-xl rounded-xl overflow-hidden fade-in border border-gray-300">
+                    <div className="flex-1 overflow-y-auto bg-gray-50 p-2 md:p-4">
+                        <div className="bg-blue-900 text-white p-2 rounded mb-2 text-center text-sm font-bold">
+                            SIMULADOR DE REPORTE (TOCA PARA VER QUÉ HACER)
+                        </div>
+                         <div className="bg-white border-2 border-gray-800 shadow-lg overflow-x-auto text-xs select-none min-w-[600px]">
+                            {/* Headers Colors */}
+                            <div className="grid grid-cols-12 header-green text-[9px] p-1 cursor-pointer" onClick={() => setSelectedSection('header_green')}>
+                                <div className="col-span-12 text-center">HABITACIONES POR ENTRAR (OP / IV)</div>
+                            </div>
+                            <div className="grid grid-cols-12 header-gray text-[9px] p-1 cursor-pointer" onClick={() => setSelectedSection('header_gray')}>
+                                <div className="col-span-12 text-center">OCUPADAS / VACANTES</div>
+                            </div>
+                            {/* Columna headers */}
+                            <div className="grid grid-cols-12 bg-white text-center font-bold border-b-2 border-black text-[10px] items-center">
+                                <div className="col-span-1 border-r border-gray-400 p-2">UNIT</div>
+                                <div className="col-span-2 border-r border-gray-400 p-2">Date</div>
+                                <div className="col-span-2 border-r border-gray-400 p-2 bg-orange-200">OUT</div>
+                                <div className="col-span-2 border-r border-gray-400 p-2 bg-yellow-200">IN</div>
+                                <div className="col-span-2 border-r border-gray-400 p-2">Special</div>
+                                <div className="col-span-1 border-r border-gray-400 p-1"># Guest</div>
+                                <div className="col-span-2 p-2">Notes</div>
+                            </div>
+
+                            {/* Rows Examples */}
+                            {/* Cruce */}
+                            <div className="grid grid-cols-12 border-b border-gray-300 items-center bg-red-50 hover:bg-red-100 cursor-pointer" onClick={() => setSelectedSection('turnover')}>
+                                <div className="col-span-1 font-bold text-center">7</div>
+                                <div className="col-span-2 text-center text-[9px]">Hoy</div>
+                                <div className="col-span-2 text-center font-bold text-orange-800">Salida</div>
+                                <div className="col-span-2 text-center font-bold text-green-800">Entrada</div>
+                                <div className="col-span-2 text-center text-red-600 font-bold text-[9px]">!CRUCE!</div>
+                                <div className="col-span-1 text-center">2</div>
+                                <div className="col-span-2"></div>
+                            </div>
+                             {/* Early */}
+                             <div className="grid grid-cols-12 border-b border-gray-300 items-center hover:bg-yellow-50 cursor-pointer" onClick={() => setSelectedSection('early_checkin')}>
+                                <div className="col-span-1 font-bold text-center">11</div>
+                                <div className="col-span-2 text-center text-[9px]">Hoy</div>
+                                <div className="col-span-2 bg-orange-50 text-orange-300 text-center font-bold">VACANTE</div>
+                                <div className="col-span-2 bg-yellow-300 text-center font-bold border-2 border-yellow-500">EARLY IN</div>
+                                <div className="col-span-2 text-center text-[9px]">11:00 AM</div>
+                                <div className="col-span-1 text-center">2</div>
+                                <div className="col-span-2"></div>
+                            </div>
+                            {/* Late */}
+                            <div className="grid grid-cols-12 border-b border-gray-300 items-center hover:bg-purple-50 cursor-pointer" onClick={() => setSelectedSection('late_checkout')}>
+                                <div className="col-span-1 font-bold text-center">13</div>
+                                <div className="col-span-2 text-center text-[9px]">Hoy</div>
+                                <div className="col-span-2 bg-purple-300 text-center font-bold border-2 border-purple-500">LATE OUT</div>
+                                <div className="col-span-2 text-center font-bold">Entrada</div>
+                                <div className="col-span-2 text-center text-[9px]">2:00 PM</div>
+                                <div className="col-span-1 text-center">2</div>
+                                <div className="col-span-2"></div>
+                            </div>
+                             {/* Deco */}
+                             <div className="grid grid-cols-12 border-b border-gray-300 items-center hover:bg-blue-50 cursor-pointer" onClick={() => setSelectedSection('decoration')}>
+                                <div className="col-span-1 font-bold text-center">15</div>
+                                <div className="col-span-2 text-center text-[9px]">Hoy</div>
+                                <div className="col-span-2 bg-orange-50 text-orange-300 text-center font-bold">VACANTE</div>
+                                <div className="col-span-2 bg-cyan-300 text-center font-bold border-2 border-cyan-500">DECO</div>
+                                <div className="col-span-2"></div>
+                                <div className="col-span-1 text-center">2</div>
+                                <div className="col-span-2 text-[8px] bg-cyan-50">Vino/Globos</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div className="w-full lg:w-72 bg-gray-100 p-4 border-l border-gray-300 flex flex-col shadow-inner z-10">
+                        {selectedSection ? (
+                            <div className="animate-fade-in">
+                                <h3 className="font-bold text-blue-900 mb-2 border-b border-blue-200 pb-1 text-sm uppercase">{explanations[selectedSection].title}</h3>
+                                <p className="text-xs text-gray-800 mb-3 italic">{explanations[selectedSection].desc}</p>
+                                <div className="bg-green-100 p-2 rounded border border-green-300">
+                                    <p className="font-bold text-green-900 text-xs">{explanations[selectedSection].action}</p>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="text-center mt-20 text-gray-400">
+                                <i className="ph ph-hand-pointing text-4xl mb-2"></i>
+                                <p className="text-xs">Toca el reporte.</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        // --- 4. PROTOCOLOS POR PROPIEDAD Y REGLAS DE REPORTE ---
+        const PropertyProtocols = () => {
+            return (
+                <div className="space-y-8 fade-in">
+                    
+                    {/* OCEAN PARK VS ISLA VERDE */}
+                    <div className="grid md:grid-cols-2 gap-6">
+                        <div className="bg-blue-50 p-6 rounded-xl border border-blue-200">
+                            <h3 className="text-xl font-black text-blue-900 mb-4 flex items-center gap-2">
+                                <i className="ph ph-waves"></i> OCEAN PARK
+                            </h3>
+                            <ul className="space-y-3 text-sm text-gray-700">
+                                <li className="flex items-start gap-2"><i className="ph ph-warning text-orange-500 mt-1"></i> <b>Humedad Crítica:</b> Zonas externas susceptibles.</li>
+                                <li className="flex items-start gap-2"><i className="ph ph-fan text-blue-500 mt-1"></i> <b>A/C:</b> Revisar que drene bien (prioridad #1).</li>
+                                <li className="flex items-start gap-2"><i className="ph ph-door text-gray-500 mt-1"></i> <b>Neveras:</b> Dejar abiertas 30 seg para ventilar.</li>
+                                <li className="flex items-start gap-2"><i className="ph ph-swimming-pool text-cyan-500 mt-1"></i> <b>Piscina:</b> Recoger toallas mojadas olvidadas.</li>
+                            </ul>
+                        </div>
+
+                        <div className="bg-green-50 p-6 rounded-xl border border-green-200">
+                            <h3 className="text-xl font-black text-green-900 mb-4 flex items-center gap-2">
+                                <i className="ph ph-tree-palm"></i> ISLA VERDE
+                            </h3>
+                            <ul className="space-y-3 text-sm text-gray-700">
+                                <li className="flex items-start gap-2"><i className="ph ph-eye text-green-600 mt-1"></i> <b>Detalle Visual:</b> Huéspedes más exigentes. Cama perfecta.</li>
+                                <li className="flex items-start gap-2"><i className="ph ph-drop text-blue-500 mt-1"></i> <b>Drenajes:</b> Tienden a taparse. Revisar ducha.</li>
+                                <li className="flex items-start gap-2"><i className="ph ph-squares-four text-gray-500 mt-1"></i> <b>Piso Impecable:</b> Espacios pequeños, todo se nota.</li>
+                                <li className="flex items-start gap-2"><i className="ph ph-lock-key text-yellow-600 mt-1"></i> <b>Cerraduras:</b> Revisar códigos.</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    {/* REGLA DE ORO DE REPORTE */}
+                    <div className="bg-red-50 border-l-8 border-red-600 p-6 rounded shadow-lg">
+                        <div className="flex items-center gap-3 mb-4">
+                            <i className="ph ph-siren text-3xl text-red-600"></i>
+                            <div>
+                                <h3 className="text-xl font-black text-red-900 uppercase">Regla de Oro (Obligatoria)</h3>
+                                <p className="text-sm text-red-700">Antes de marcar la unidad como "LIMPIA", debes reportar:</p>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm font-bold text-gray-700">
+                            <div className="flex items-center gap-2"><i className="ph ph-check-circle text-red-500"></i> Daños visibles</div>
+                            <div className="flex items-center gap-2"><i className="ph ph-check-circle text-red-500"></i> Faltantes (Toallas/Control)</div>
+                            <div className="flex items-center gap-2"><i className="ph ph-check-circle text-red-500"></i> Bombillos quemados</div>
+                            <div className="flex items-center gap-2"><i className="ph ph-check-circle text-red-500"></i> A/C con ruido</div>
+                            <div className="flex items-center gap-2"><i className="ph ph-check-circle text-red-500"></i> Drenajes lentos</div>
+                            <div className="flex items-center gap-2"><i className="ph ph-check-circle text-red-500"></i> Olor extraño</div>
+                            <div className="flex items-center gap-2"><i className="ph ph-check-circle text-red-500"></i> Fuga de agua</div>
+                            <div className="flex items-center gap-2"><i className="ph ph-check-circle text-red-500"></i> Ropa/Muebles manchados</div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- MAIN APP SHELL ---
+        const App = () => {
+            const [view, setView] = useState('welcome');
+
+            const navItems = [
+                { id: 'training', label: '1. Estándares y Tiempos', icon: 'ph-clock' },
+                { id: 'report', label: '2. Lectura Reporte', icon: 'ph-file-text' },
+                { id: 'protocols', label: '3. Reglas x Propiedad', icon: 'ph-buildings' }
+            ];
+
+            return (
+                <div className="min-h-screen flex flex-col bg-slate-100">
+                    <header className="bg-slate-900 text-white p-4 shadow-lg sticky top-0 z-50">
+                        <div className="max-w-6xl mx-auto flex justify-between items-center">
+                            <div className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition" onClick={() => setView('welcome')}>
+                                <i className="ph ph-broom text-2xl text-yellow-400"></i>
+                                <div>
+                                    <h1 className="font-bold text-sm md:text-lg leading-none">Housekeeping</h1>
+                                    <p className="text-[10px] text-slate-400 uppercase tracking-widest">Training Module v3.0</p>
+                                </div>
+                            </div>
+                            
+                            {view !== 'welcome' && view !== 'quiz' && (
+                                <nav className="flex gap-1 md:gap-3">
+                                    {navItems.map(item => (
+                                        <button 
+                                            key={item.id}
+                                            onClick={() => setView(item.id)}
+                                            className={`flex items-center gap-1 px-3 py-2 rounded-lg text-xs md:text-sm font-medium transition ${view === item.id ? 'bg-yellow-500 text-slate-900 shadow-glow' : 'hover:bg-slate-800 text-slate-300'}`}
+                                        >
+                                            <i className={`ph ${item.icon} text-lg`}></i>
+                                            <span className="hidden md:inline">{item.label}</span>
+                                        </button>
+                                    ))}
+                                </nav>
+                            )}
+                        </div>
+                    </header>
+
+                    <main className="flex-1 max-w-6xl mx-auto w-full p-4 md:p-8">
+                        
+                        {view === 'welcome' && (
+                            <div className="text-center py-12 fade-in">
+                                <div className="bg-white p-8 md:p-12 rounded-3xl shadow-2xl max-w-2xl mx-auto border border-gray-100">
+                                    <div className="bg-blue-50 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 ring-4 ring-blue-100">
+                                        <i className="ph ph-graduation-cap text-5xl text-blue-600"></i>
+                                    </div>
+                                    <h1 className="text-3xl md:text-4xl font-black text-slate-800 mb-4">Manual de Operaciones</h1>
+                                    <p className="text-gray-500 mb-8 text-lg leading-relaxed">
+                                        Bienvenida. Antes de ver el reporte, vamos a revisar los <strong>Estándares Oficiales</strong> de tiempos, checklists y prioridades.
+                                    </p>
+                                    <button 
+                                        onClick={() => setView('quiz')}
+                                        className="bg-blue-600 text-white text-lg font-bold px-10 py-4 rounded-full hover:bg-blue-700 shadow-xl transform hover:scale-105 transition flex items-center gap-3 mx-auto"
+                                    >
+                                        Comenzar Diagnóstico <i className="ph ph-arrow-right font-bold"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {view === 'quiz' && (
+                            <QuizModule onComplete={() => setTimeout(() => setView('training'), 1500)} />
+                        )}
+
+                        {view === 'training' && <ProcessStandard />}
+
+                        {view === 'report' && (
+                            <div className="space-y-6">
+                                <div className="text-center mb-6">
+                                    <h2 className="text-2xl font-bold text-slate-800">Lectura del Reporte Diario</h2>
+                                    <p className="text-gray-500">Identifica las prioridades (Early, Late, Cruce) en el papel.</p>
+                                </div>
+                                <ReportReader />
+                            </div>
+                        )}
+
+                        {view === 'protocols' && (
+                            <div className="space-y-6">
+                                <div className="text-center mb-6">
+                                    <h2 className="text-2xl font-bold text-slate-800">Protocolos por Propiedad</h2>
+                                    <p className="text-gray-500">Diferencias clave entre OP e IV + Reglas de Reporte.</p>
+                                </div>
+                                <PropertyProtocols />
+                            </div>
+                        )}
+
+                    </main>
+
+                    <footer className="bg-slate-200 text-center p-4 text-slate-500 text-xs font-medium uppercase tracking-wide">
+                        &copy; 2024 Hotel Operations System
+                    </footer>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
